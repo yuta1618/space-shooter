@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Phaser Space Game - Final Balanced Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <style> 
+        body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; } 
+    </style>
+</head>
+<body>
+<script>
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    physics: {
+        default: 'arcade',
+        arcade: { gravity: { y: 0 }, debug: false }
+    },
+    scene: { preload: preload, create: create, update: update }
+};
+
+const game = new Phaser.Game(config);
+let ship, cursors, bullets, rocks, score, scoreText, restartButton, rockEvent;
+
+function preload() {
+    const graphics = this.make.graphics();
+
+    // --- 宇宙船の設計 (50x50) ---
+    graphics.fillStyle(0x1a1a1a, 1);
+    graphics.fillTriangle(25, 0, 5, 40, 45, 40);
+    graphics.fillStyle(0xbdc3c7, 1);
+    graphics.fillTriangle(25, 2, 10, 35, 40, 35);
+    graphics.fillStyle(0x2980b9, 1);
+    graphics.fillTriangle(10, 20, 0, 45, 15, 40);
+    graphics.fillTriangle(40, 20, 50, 45, 35, 40);
+    graphics.fillStyle(0x3498db, 1);
+    graphics.fillEllipse(25, 22, 7, 12);
+    graphics.fillStyle(0xe67e22, 1);
+    graphics.fillTriangle(25, 48, 17, 37, 33, 37);
+    graphics.generateTexture('ship', 50, 50);
+    graphics.clear();
+
+    // --- レーザー ---
+    graphics.fillStyle(0xff0000, 1);
+    graphics.fillRect(0, 0, 4, 20);
+    graphics.generateTexture('laser', 4, 20);
+    graphics.clear();
+
+    // --- 岩の設計 (70x70) ---
+    graphics.fillStyle(0x888888, 1);
+    graphics.fillCircle(35, 35, 35); // ベースの円
+    // 少しディテールを追加（クレーター）
+    graphics.fillStyle(0x666666, 1);
+    graphics.fillCircle(20, 25, 8);
+    graphics.fillCircle(45, 45, 12);
+    graphics.fillCircle(50, 20, 5);
+    graphics.generateTexture('rock', 70, 70);
+    graphics.clear();
+}
+
+function create() {
+    score = 0;
+    
+    // プレイヤー設定
+    ship = this.physics.add.sprite(400, 500, 'ship');
+    // 当たり判定を少し小さくして遊びやすく（胴体部分に集中）
+    ship.body.setSize(30, 40); 
+    ship.setCollideWorldBounds(true);
+
+    // 入力
+    cursors = this.input.keyboard.createCursorKeys();
+    this.input.keyboard.on('keydown-SPACE', fireLaser, this);
+
+    // グループ
+    bullets = this.physics.add.group();
+    rocks = this.physics.add.group();
+
+    // 岩の生成
+    rockEvent = this.time.addEvent({
+        delay: 1000,
+        callback: () => {
+            let x = Phaser.Math.Between(35, 765);
+            let rock = rocks.create(x, -70, 'rock');
+            rock.setVelocityY(140); // 速度を微調整
+            // 当たり判定を半径35pxの円形に設定
+            rock.setCircle(35);
+        },
+        loop: true
+    });
+
+    // 衝突判定：レーザー vs 岩
+    this.physics.add.collider(bullets, rocks, (bullet, rock) => {
+        bullet.destroy();
+        rock.destroy();
+        score += 10;
+        scoreText.setText('Score: ' + score);
+    });
+
+    // 衝突判定：プレイヤー vs 岩
+    this.physics.add.collider(ship, rocks, gameOver, null, this);
+
+    // UI
+    scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#fff' });
+
+    restartButton = this.add.text(400, 300, 'RESTART', { 
+        fontSize: '48px', 
+        fill: '#0f0', 
+        backgroundColor: '#222',
+        padding: { x: 20, y: 10 }
+    })
+    .setOrigin(0.5)
+    .setInteractive({ useHandCursor: true })
+    .on('pointerdown', () => this.scene.restart())
+    .setVisible(false);
+}
+
+function update() {
+    if (ship.active) {
+        if (cursors.left.isDown) ship.setVelocityX(-350);
+        else if (cursors.right.isDown) ship.setVelocityX(350);
+        else ship.setVelocityX(0);
+    }
+
+    // 画面外のオブジェクトをクリーンアップ（設計上の重要ポイント）
+    bullets.children.each(bullet => {
+        if (bullet && bullet.y < 0) bullet.destroy();
+    });
+
+    rocks.children.each(rock => {
+        if (rock && rock.y > 670) rock.destroy();
+    });
+}
+
+function fireLaser() {
+    if (!ship.active) return;
+    let laser = bullets.create(ship.x, ship.y - 25, 'laser');
+    laser.setVelocityY(-600);
+}
+
+function gameOver() {
+    this.physics.pause();
+    ship.setTint(0xff0000);
+    ship.active = false;
+    if(rockEvent) rockEvent.remove();
+    restartButton.setVisible(true);
+}
+</script>
+</body>
+</html>
