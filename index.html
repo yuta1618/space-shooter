@@ -27,7 +27,6 @@ let ship, cursors, bullets, rocks, score, scoreText, restartButton, rockEvent;
 function preload() {
     const graphics = this.make.graphics();
 
-    // --- 宇宙船の設計 (50x50) ---
     graphics.fillStyle(0x1a1a1a, 1);
     graphics.fillTriangle(25, 0, 5, 40, 45, 40);
     graphics.fillStyle(0xbdc3c7, 1);
@@ -42,16 +41,13 @@ function preload() {
     graphics.generateTexture('ship', 50, 50);
     graphics.clear();
 
-    // --- レーザー ---
     graphics.fillStyle(0xff0000, 1);
     graphics.fillRect(0, 0, 4, 20);
     graphics.generateTexture('laser', 4, 20);
     graphics.clear();
 
-    // --- 岩の設計 (70x70) ---
     graphics.fillStyle(0x888888, 1);
     graphics.fillCircle(35, 35, 35); // ベースの円
-    // 少しディテールを追加（クレーター）
     graphics.fillStyle(0x666666, 1);
     graphics.fillCircle(20, 25, 8);
     graphics.fillCircle(45, 45, 12);
@@ -65,7 +61,6 @@ function create() {
     
     // プレイヤー設定
     ship = this.physics.add.sprite(400, 500, 'ship');
-    // 当たり判定を少し小さくして遊びやすく（胴体部分に集中）
     ship.body.setSize(30, 40); 
     ship.setCollideWorldBounds(true);
 
@@ -90,7 +85,6 @@ function create() {
         loop: true
     });
 
-    // 衝突判定：レーザー vs 岩
     this.physics.add.collider(bullets, rocks, (bullet, rock) => {
         bullet.destroy();
         rock.destroy();
@@ -98,7 +92,6 @@ function create() {
         scoreText.setText('Score: ' + score);
     });
 
-    // 衝突判定：プレイヤー vs 岩
     this.physics.add.collider(ship, rocks, gameOver, null, this);
 
     // UI
@@ -123,7 +116,6 @@ function update() {
         else ship.setVelocityX(0);
     }
 
-    // 画面外のオブジェクトをクリーンアップ（設計上の重要ポイント）
     bullets.children.each(bullet => {
         if (bullet && bullet.y < 0) bullet.destroy();
     });
@@ -148,4 +140,5 @@ function gameOver() {
 }
 </script>
 </body>
+
 </html>
